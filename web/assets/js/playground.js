@@ -178,6 +178,17 @@ addEventListener("DOMContentLoaded", () => {
     editor.dispatch(update);
   });
 
+  document.addEventListener("keydown", (event) => {
+    if (currentEffect === null)
+      return;
+
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight" && event.key !== "ArrowUp" && event.key !== "ArrowDown")
+      return;
+
+    if (typeof currentEffect.onKeypress === "function")
+      currentEffect.onKeypress(event.key)
+  })
+
   setInterval(() => {
     if (nextEffect !== null) {
       try {
