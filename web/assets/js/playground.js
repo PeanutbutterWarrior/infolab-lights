@@ -185,8 +185,10 @@ addEventListener("DOMContentLoaded", () => {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight" && event.key !== "ArrowUp" && event.key !== "ArrowDown")
       return;
 
-    if (typeof currentEffect.onKeypress === "function")
-      currentEffect.onKeypress(event.key)
+    if (typeof currentEffect.onKeypress === "function") {
+      currentEffect.onKeypress(event.key);
+      event.preventDefault();
+    }
   })
 
   setInterval(() => {
