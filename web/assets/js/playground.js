@@ -83,27 +83,20 @@ class MockDisplay {
     this.width = width;
     this.height = height;
 
-    this.#buffer = Array.from(
-      Array(width),
-      () => Array.from(Array(height), () => [0, 0, 0]),
-    );
+    let canvas = document.getElementById("playground-display");
+    this.#buffer = canvas.getContext("2d").getImageData(0, 0, this.width, this.height);
   }
 
   setPixel(x, y, [r, g, b]) {
-    this.#buffer[x][y] = [r, g, b];
+    let baseIndex = y * this.width * 4 + x * 4;
+    this.#buffer.data[baseIndex    ] = r;
+    this.#buffer.data[baseIndex + 1] = g;
+    this.#buffer.data[baseIndex + 2] = b;
   }
 
   flush() {
-    for (let x = 0; x < this.width; x++) {
-      for (let y = 0; y < this.height; y++) {
-        const pix = document.getElementById(`screen_pix_${x}_${y}`);
-        const [r, g, b] = this.#buffer[x][y];
-        if (pix === null) {
-          continue;
-        }
-        pix.setAttribute("fill", `rgb(${r}, ${g}, ${b})`);
-      }
-    }
+    let canvas = document.getElementById("playground-display");
+    canvas.getContext("2d").putImageData(this.#buffer, 0, 0);
   }
 }
 
@@ -111,6 +104,11 @@ scrollTheme = EditorView.theme({
   "&": { height: "80vh" },
   ".cm-scroller": { overflow: "auto" },
 });
+
+let canvas = document.getElementById("playground-display");
+let displayCtx = canvas.getContext("2d");
+displayCtx.fillStyle = "#000000ff"
+displayCtx.fillRect(0, 0, canvas.width, canvas.height);
 
 addEventListener("DOMContentLoaded", () => {
   const editor = new EditorView({

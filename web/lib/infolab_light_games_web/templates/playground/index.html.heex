@@ -40,15 +40,8 @@
 <section class="section">
     <div class="columns">
         <div id="playground_screen" class="column is-two-fifths">
-            <svg viewbox={"0 0 #{@width * 4} #{@height * 4}"}>
-                <rect width={@width * 4} height={@height * 4} fill="#000000" />
-                <%= for x <- 0..@width-1,
-                        y <- 0..@height-1 do %>
-                    <rect id={"screen_pix_#{x}_#{y}"} width="4" height="4"
-                          fill="#000000"
-                          x={x * 4} y={y * 4} />
-                <% end %>
-            </svg>
+            <canvas id="playground-display" width={@width} height={@height} style={"width:#{@width * 4}px; height:#{@height * 4}px;"}> <!-- Nasty dimensions to get pixel scaling-->
+            </canvas>
 
             <nav class="panel mt-4">
                 <p class="panel-heading">Effects</p>
