@@ -88,6 +88,8 @@ class MockDisplay {
   }
 
   setPixel(x, y, [r, g, b]) {
+    if (x < 0 || x >= this.width || y < 0 || y >= this.height)
+      return;
     let baseIndex = y * this.width * 4 + x * 4;
     this.#buffer.data[baseIndex    ] = r;
     this.#buffer.data[baseIndex + 1] = g;
@@ -182,12 +184,52 @@ addEventListener("DOMContentLoaded", () => {
 
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight" && event.key !== "ArrowUp" && event.key !== "ArrowDown")
       return;
+    
+    if (document.getElementById("editor").contains(document.activeElement))
+      return;
 
     if (typeof currentEffect.onKeypress === "function") {
-      currentEffect.onKeypress(event.key);
+      currentEffect.onKeypress(event.key, 1);
       event.preventDefault();
     }
-  })
+  });
+
+  function handleInputButton(event, player) {
+    if (currentEffect === null)
+      return;
+
+    if (typeof currentEffect.onKeypress !== "function")
+      return;
+    
+    console.log(event.target);
+    console.log(event.target.parentNode)
+    let button = event.target;
+    if (button.tagName != "DIV") // Hacky workaround for reloading after adding players, should fix
+      button = button.parentNode;
+    let direction = button.attributes["data-dir"].value.trim();
+    currentEffect.onKeypress(direction, player)
+  }
+
+  document.getElementById("add-player-button").addEventListener("click", () => {
+    let playerInputBox = document.getElementById("player-input-box");
+    let numPlayers = playerInputBox.childElementCount;
+    let newPlayer = document.getElementById("player-input-template").content.cloneNode(true);
+    newPlayer.firstElementChild.firstElementChild.textContent = "Player " + (numPlayers + 1);
+
+    newPlayer.querySelectorAll("div.small-arrow").forEach(element   => {
+      element.addEventListener("click", (event) => {
+        handleInputButton(event, numPlayers + 1);
+      });
+    });
+    playerInputBox.appendChild(newPlayer);
+  });
+
+  document.getElementById("remove-player-button").addEventListener("click", () => {
+    let playerInputBox = document.getElementById("player-input-box");
+    let lastChild = playerInputBox.lastElementChild;
+    if (lastChild !== null)
+      playerInputBox.removeChild(lastChild)
+  });
 
   setInterval(() => {
     if (nextEffect !== null) {

@@ -166,6 +166,14 @@ canvas {
   }
 }
 
+.small-arrow {
+  @extend .arrow;
+  width: 2em;
+  height: 2em;
+  line-height: 2em;
+  font-size: 1em;
+}
+
 .up-arrow {
   position: relative;
   top: -4px;

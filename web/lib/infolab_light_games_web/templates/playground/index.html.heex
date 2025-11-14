@@ -53,6 +53,17 @@
                     You can view some examples of effects in the repository <a href="https://github.com/lancaster-university/infolab-lights/tree/master/web/priv/js_effects">here</a>.
                 </div>
             </nav>
+
+            <div class="panel mt-4">
+                <p class="panel-heading">Players</p>
+                <div class="box">
+                    <div id="player-input-box"></div>
+                    <br/>
+                    <button class="button has-background-grey-lighter" id="add-player-button">+</button>
+                    <button class="button has-background-grey-lighter" id="remove-player-button">-</button>
+                </div>
+                
+            </div>
         </div>
 
         <div id="editor" class="column is-three-fifths">
@@ -60,3 +71,18 @@
     </div>
 
 </section>
+
+<template id="player-input-template">
+    <div class="player-input box columns has-background-grey-lighter mt-2">
+        <div class="column is-two-fifths">
+            <p class="is-size-4 has-text-weight-medium has-text-dark"> Player 1 </p>
+        </div>
+        <div class="arrow-container column is-three-fifths" style="text-align:center;">
+            <div class="small-arrow up-arrow" data-dir="ArrowUp"><i class="fa fa-arrow-up"></i></div>
+            <br />
+            <div class="small-arrow" data-dir="ArrowLeft"><i class="fa fa-arrow-left"></i></div>
+            <div class="small-arrow" data-dir="ArrowDown"><i class="fa fa-arrow-down"></i></div>
+            <div class="small-arrow" data-dir="ArrowRight"><i class="fa fa-arrow-right"></i></div>
+        </div>
+    </div>
+</template>
