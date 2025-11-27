@@ -52,7 +52,7 @@ defmodule InfolabLightGamesWeb.PageLive do
 
   @impl true
   def handle_info(
-        {:game_terminated, id},
+        {:activity_terminated, id},
         %{assigns: %{game_id: id, remote_ip: remote_ip}} = socket
       ) do
     {:ok, _} = Presence.update_user_status(self(), remote_ip, "idle")
@@ -60,7 +60,7 @@ defmodule InfolabLightGamesWeb.PageLive do
   end
 
   @impl true
-  def handle_info({:game_terminated, _id}, socket) do
+  def handle_info({:activity_terminated, _id}, socket) do
     {:noreply, socket}
   end
 
@@ -82,7 +82,7 @@ defmodule InfolabLightGamesWeb.PageLive do
         _ -> {:error, :unknown_game}
       end
 
-    id = Coordinator.queue_game(game, self())
+    {:ok, id} = Coordinator.queue_activity(game, nil, self())
 
     {:ok, _} = Presence.update_user_status(self(), remote_ip, "in game #{id}")
 
@@ -114,7 +114,7 @@ defmodule InfolabLightGamesWeb.PageLive do
     Logger.info("Queueing #{animation_name}")
 
     {module, {mode, name}} = Coordinator.idle_animation_for_name(animation_name)
-    :ok = Coordinator.queue_idle_animation(module, mode, name)
+    :ok = Coordinator.queue_activity(module, {mode, name}, nil)
 
     socket =
       socket

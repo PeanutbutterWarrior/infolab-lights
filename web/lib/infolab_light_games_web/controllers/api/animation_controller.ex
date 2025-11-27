@@ -45,25 +45,29 @@ defmodule Api.AnimationController do
     security [%{apiKeyAuth: []}]
   end
 
+  # Temporarily disabled while updating code
   def post(conn, %{"code" => %Plug.Upload{path: path, filename: filename} = upload}) do
-    type =
-      case Path.extname(filename) do
-        ".js" -> :js
-        ".ts" -> :ts
-      end
+    conn
+    |> put_status(:service_unavailable)
+    |> render("error.json", message: "Temporarily disabled")
+    # type =
+    #   case Path.extname(filename) do
+    #     ".js" -> :js
+    #     ".ts" -> :ts
+    #   end
 
-    case Coordinator.push_idle_animation(IdleAnimations.JSImpl, {path, type}) do
-      {:ok, pid} ->
-        :ok = Plug.Upload.give_away(upload, pid)
+    # case Coordinator.push_idle_animation(IdleAnimations.JSImpl, {path, type}) do
+    #   {:ok, pid} ->
+    #     :ok = Plug.Upload.give_away(upload, pid)
 
-        conn
-        |> put_status(:created)
-        |> render("success.json", message: "Set animation")
+    #     conn
+    #     |> put_status(:created)
+    #     |> render("success.json", message: "Set animation")
 
-      {:error, :active_game} ->
-        conn
-        |> put_status(:service_unavailable)
-        |> render("error.json", message: "Active Game")
-    end
+    #   {:error, :active_game} ->
+    #     conn
+    #     |> put_status(:service_unavailable)
+    #     |> render("error.json", message: "Active Game")
+    # end
   end
 end

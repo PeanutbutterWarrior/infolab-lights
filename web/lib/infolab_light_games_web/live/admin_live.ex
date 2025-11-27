@@ -55,8 +55,8 @@ defmodule InfolabLightGamesWeb.AdminLive do
   end
 
   @impl true
-  def handle_event("terminate", %{"game-id" => id}, socket) do
-    Coordinator.terminate_game(id)
+  def handle_event("terminate", %{"game-id" => _id}, socket) do
+    Coordinator.terminate_activity()
 
     {:noreply, socket}
   end
@@ -72,7 +72,7 @@ defmodule InfolabLightGamesWeb.AdminLive do
       end)
 
     # a bit of a hack to have zero player games, but w/e
-    id = Coordinator.queue_game(Games.Static, nil, images: images)
+    id = Coordinator.queue_activity(Games.Static, %{images: images}, nil)
 
     socket =
       socket
@@ -83,7 +83,7 @@ defmodule InfolabLightGamesWeb.AdminLive do
 
   @impl true
   def handle_event("terminate-idle-animation", _, socket) do
-    Coordinator.terminate_idle_animation()
+    Coordinator.terminate_activity()
 
     {:noreply, socket}
   end
