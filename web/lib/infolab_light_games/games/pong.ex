@@ -90,14 +90,14 @@ defmodule Games.Pong do
   end
 
   @impl true
-  def handle_cast(:terminate, state) do
+  def handle_cast(:terminate, %State{} = state) do
     state = %State{state | running: false}
 
     {:noreply, state}
   end
 
   @impl true
-  def handle_call({:add_player, player}, _from, state) do
+  def handle_call({:add_player, player}, _from, %State{} = state) do
     {:ok, state} =
       case {state.left_player, state.right_player} do
         {nil, _} ->
@@ -159,7 +159,7 @@ defmodule Games.Pong do
   end
 
   @impl true
-  def handle_call(:start_if_ready, _from, state) do
+  def handle_call(:start_if_ready, _from, %State{} = state) do
     cond do
       state.running ->
         {:reply, :running, state}
@@ -212,7 +212,7 @@ defmodule Games.Pong do
     state
   end
 
-  defp fade_tick(state) do
+  defp fade_tick(%State{} = state) do
     if Fader.done(state.fader) do
       {:stop, :normal, state}
     else
@@ -250,7 +250,7 @@ defmodule Games.Pong do
           end)
 
         {true, false, _, _} ->
-          %State{state | running: false, winner: :red}
+          %{state | running: false, winner: :red}
 
         {_, _, true, true} ->
           right_movement = paddle_vel(state.right_keypress_state, state.right_paddle_pos)
@@ -261,7 +261,7 @@ defmodule Games.Pong do
           end)
 
         {_, _, true, false} ->
-          %State{state | running: false, winner: :blue}
+          %{state | running: false, winner: :blue}
 
         _ ->
           state

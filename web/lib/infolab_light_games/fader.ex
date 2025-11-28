@@ -12,7 +12,7 @@ defmodule Fader do
     %Fader{total_steps: total_steps, recip: 1 / total_steps}
   end
 
-  def step(state) do
+  def step(%Fader{} = state) do
     if done(state) do
       state
     else

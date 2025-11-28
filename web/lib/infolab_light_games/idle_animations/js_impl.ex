@@ -403,7 +403,7 @@ defmodule IdleAnimations.JSImpl do
   defp start_fading_out(%State{} = state) do
     tick_request()
 
-    %State{state | fading_out: true, fader: %Fader{state.fader | direction: :dec}}
+    %State{state | fading_out: true, fader: %{state.fader | direction: :dec}}
   end
 
   defp tick_request do

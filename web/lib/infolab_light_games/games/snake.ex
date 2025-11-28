@@ -98,14 +98,14 @@ defmodule Games.Snake do
   end
 
   @impl true
-  def handle_cast(:terminate, state) do
+  def handle_cast(:terminate, %State{} = state) do
     state = %State{state | running: false}
 
     {:noreply, state}
   end
 
   @impl true
-  def handle_call({:add_player, player}, _from, state) do
+  def handle_call({:add_player, player}, _from, %State{} = state) do
     {:ok, state} =
       if is_nil(state.player) do
         {:ok, %State{state | player: player}}
@@ -145,7 +145,7 @@ defmodule Games.Snake do
   end
 
   @impl true
-  def handle_call(:start_if_ready, _from, state) do
+  def handle_call(:start_if_ready, _from, %State{} = state) do
     cond do
       state.running ->
         {:reply, :running, state}
@@ -221,7 +221,7 @@ defmodule Games.Snake do
         :right -> {1, 0}
       end
 
-    %State{state | snake_head_pos: {x + dx, y + dy}, snake_direction: dir}
+    %{state | snake_head_pos: {x + dx, y + dy}, snake_direction: dir}
   end
 
   defp update_tail(%State{} = state) do
@@ -301,7 +301,7 @@ defmodule Games.Snake do
     %State{state | food_location: new_pos}
   end
 
-  defp fade_tick(state) do
+  defp fade_tick(%State{} = state) do
     if Fader.done(state.fader) do
       {:stop, :normal, state}
     else

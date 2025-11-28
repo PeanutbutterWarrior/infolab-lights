@@ -37,7 +37,7 @@ defmodule Games.Static do
   end
 
   @impl true
-  def handle_cast(:terminate, state) do
+  def handle_cast(:terminate, %State{} = state) do
     state = %State{state | running: false}
 
     {:noreply, state}

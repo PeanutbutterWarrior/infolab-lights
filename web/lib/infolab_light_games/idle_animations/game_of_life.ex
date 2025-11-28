@@ -42,7 +42,7 @@ defmodule IdleAnimations.GOL do
   end
 
   @impl true
-  def handle_info(:tick, state) do
+  def handle_info(:tick, %State{} = state) do
     render(state)
 
     state = %State{
@@ -63,8 +63,8 @@ defmodule IdleAnimations.GOL do
   end
 
   @impl true
-  def handle_cast(:terminate, state) do
-    {:noreply, %State{state | fading_out: true, fader: %Fader{state.fader | direction: :dec}}}
+  def handle_cast(:terminate, %State{} = state) do
+    {:noreply, %State{state | fading_out: true, fader: %{state.fader | direction: :dec}}}
   end
 
   @impl true

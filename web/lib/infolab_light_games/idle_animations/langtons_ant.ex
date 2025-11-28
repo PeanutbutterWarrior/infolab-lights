@@ -66,7 +66,7 @@ defmodule IdleAnimations.Ant do
   end
 
   @impl true
-  def handle_info(:tick, state) do
+  def handle_info(:tick, %State{} = state) do
     render(state)
 
     update_fn = state.ruleset.rule_map[Matrix.at(state.state_matrix, state.ant_position)]
@@ -91,7 +91,7 @@ defmodule IdleAnimations.Ant do
   end
 
   defp start_fading_out(%State{} = state) do
-    %State{state | fading_out: true, fader: %Fader{state.fader | direction: :dec}}
+    %State{state | fading_out: true, fader: %{state.fader | direction: :dec}}
   end
 
   @impl true
@@ -272,7 +272,7 @@ defmodule IdleAnimations.Ant do
     }
   end
 
-  defp rotate(state, dir) do
+  defp rotate(%State{} = state, dir) do
     dir =
       case {dir, state.ant_direction} do
         {:left, :up} -> :left
@@ -288,11 +288,11 @@ defmodule IdleAnimations.Ant do
     %State{state | ant_direction: dir}
   end
 
-  defp set_colour(state, colour) do
+  defp set_colour(%State{} = state, colour) do
     %State{state | state_matrix: Matrix.draw_at(state.state_matrix, state.ant_position, colour)}
   end
 
-  defp step(state, amount) do
+  defp step(%State{} = state, amount) do
     {screen_x, screen_y} = Screen.dims()
 
     {dx, dy} =
