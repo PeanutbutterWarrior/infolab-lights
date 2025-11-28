@@ -10,7 +10,7 @@ defmodule Coordinator do
     typedstruct enforce: true do
       field(:queue, Qex.t({module(), any(), binary()}))
       field(:current_activity, Coodinator.via_tuple() | none())
-      field(:activity_timer, reference() | none())
+      field(:timer, reference() | none())
       field(:enforce_timer, boolean())
     end
   end
@@ -26,7 +26,7 @@ defmodule Coordinator do
       %State{
         queue: Qex.new(),
         current_activity: nil,
-        activity_timer: nil,
+        timer: nil,
         enforce_timer: false,
       },
       name: __MODULE__
@@ -39,7 +39,7 @@ defmodule Coordinator do
   end
 
   @impl true
-  def handle_cast(:terminate_activity, state) do
+  def handle_cast(:terminate_activity, %State{} = state) do
     if !is_nil(state.current_activity) do
       id = state.current_activity
       try_stop(via_tuple(id))
@@ -100,7 +100,7 @@ defmodule Coordinator do
   end
 
   @impl true
-  def handle_continue(:tick, state) do
+  def handle_continue(:tick, %State{} = state) do
     # If timer shouldn't be enforced (random activity, not queued) then start next activity
     state = if !state.enforce_timer  do
       if state.timer do
@@ -162,7 +162,7 @@ defmodule Coordinator do
     state = %State {
       queue: queue,
       current_activity: via_tuple(id),
-      activity_timer: timer,
+      timer: timer,
       enforce_timer: enforce_timer,
     }
 
@@ -210,7 +210,7 @@ defmodule Coordinator do
 
   defp get_random_activity() do
     # Chosen by random dice roll
-    {IdleAnimations.Ant, {:original, "Langtons ant"}}
+    {IdleAnimations.Ant, {:original, "Langtons ant"}, nil}
   end
 
   def terminate_activity() do
