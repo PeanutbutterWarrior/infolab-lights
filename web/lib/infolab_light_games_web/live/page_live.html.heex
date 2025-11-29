@@ -22,28 +22,22 @@
                 <div class="navbar-end">
                     <div class="navbar-item">
                         <div class="buttons">
-                            <%= if @coordinator_status.queued_idle_animation do %>
-                                <button class="button is-primary" disabled>
-                                    <span>Queued: <%= elem(@coordinator_status.queued_idle_animation, 2) %></span>
-                                </button>
-                            <% else %>
-                                <div class="dropdown dropdown-button">
-                                    <div class="dropdown-trigger">
-                                        <button id="anim-dropdown-button" class="button is-primary" aria-haspopup="true" aria-controls="anim-queue-dropdown-menu" phx-hook="AnimDropdown">
-                                            <strong>Queue animation</strong>
-                                        </button>
-                                    </div>
-                                    <div class="dropdown-menu" id="anim-queue-dropdown-menu" role="menu">
-                                        <div class="dropdown-content">
-                                            <%= for opt <- @animation_names do %>
-                                                <a class="dropdown-item" phx-click="queue-animation" phx-value-animation-name={opt}>
-                                                    <%= opt %>
-                                                </a>
-                                            <% end %>
-                                        </div>
+                            <div class="dropdown dropdown-button">
+                                <div class="dropdown-trigger">
+                                    <button id="anim-dropdown-button" class="button is-primary" aria-haspopup="true" aria-controls="anim-queue-dropdown-menu" phx-hook="AnimDropdown">
+                                        <strong>Queue animation</strong>
+                                    </button>
+                                </div>
+                                <div class="dropdown-menu" id="anim-queue-dropdown-menu" role="menu">
+                                    <div class="dropdown-content">
+                                        <%= for opt <- @animation_names do %>
+                                            <a class="dropdown-item" phx-click="queue-animation" phx-value-animation-name={opt}>
+                                                <%= opt %>
+                                            </a>
+                                        <% end %>
                                     </div>
                                 </div>
-                            <% end %>
+                            </div>
                             <button class="button is-primary" phx-click="queue" phx-value-game-name="snake" {if @game_id, do: [disabled: ""], else: []}>
                                 <strong>Play snake</strong>
                             </button>
@@ -62,15 +56,15 @@
     <div class="columns">
         <div class="column is-one-fifth">
             <div class="current_game">
-                <%= if @coordinator_status.current_game do %>
+                <%= if @coordinator_status.current_activity do %>
                     <div class="box">
                         <nav class="level">
                             <div class="level-left">
-                                <span class="level-item"><%= @coordinator_status.current_game.name %></span>
+                                <span class="level-item"><%= @coordinator_status.current_activity.name %></span>
                             </div>
                             <div class="level-right">
-                                <span class="level-item tag is-info"><%= @coordinator_status.current_game.players %>/
-                                    <%= @coordinator_status.current_game.max_players %> players</span>
+                                <span class="level-item tag is-info"><%= @coordinator_status.current_activity.players %>/
+                                    <%= @coordinator_status.current_activity.max_players %> players</span>
                             </div>
                         </nav>
                     </div>
@@ -98,6 +92,7 @@
 
             <nav class="panel">
                 <p class="panel-heading">Queue</p>
+                <%= if false do %>
                 <%= for game <- @coordinator_status.queue do %>
                     <div class="box">
                         <nav class="level">
@@ -125,6 +120,7 @@
                             </div>
                         </nav>
                     </div>
+                <% end %>
                 <% end %>
             </nav>
         </div>

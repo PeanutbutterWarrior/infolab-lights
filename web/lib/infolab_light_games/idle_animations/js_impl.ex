@@ -74,7 +74,34 @@ defmodule IdleAnimations.JSImpl do
   end
 
   @impl true
-  def handle_continue(:start, %State{file: {src_file, :ts}} = state) do
+  def handle_call(:get_status, _from, state) do
+    {:reply,
+     %GameStatus{
+       id: state.id,
+       name: "JS Impl",
+       players: 0,
+       max_players: 0,
+       ready: true
+     }, state}
+  end
+
+  @impl true
+  def handle_cast({:handle_input, _player, _input}, state) do
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:add_player, _player}, state) do
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:remove_player, _player}, state) do
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_continue(:start, %State{file: {{src_file, :ts}, _}} = state) do
     deno = System.find_executable("deno")
     {tmp, path} = Temp.open!(%{suffix: ".ts"})
     {screen_x, screen_y} = Screen.dims()
@@ -195,7 +222,7 @@ defmodule IdleAnimations.JSImpl do
   end
 
   @impl true
-  def handle_continue(:start, %State{file: {src_file, :js}} = state) do
+  def handle_continue(:start, %State{file: {{src_file, :js}, _}} = state) do
     deno = System.find_executable("deno")
     {tmp, path} = Temp.open!(%{suffix: ".js"})
     {screen_x, screen_y} = Screen.dims()

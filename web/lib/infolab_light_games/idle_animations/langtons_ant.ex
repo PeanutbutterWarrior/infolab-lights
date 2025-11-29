@@ -90,6 +90,34 @@ defmodule IdleAnimations.Ant do
     {:noreply, start_fading_out(state)}
   end
 
+  @impl true
+  def handle_call(:get_status, _from, state) do
+    {:reply,
+     %GameStatus{
+       id: state.id,
+       name: "Langton's Ant",
+       players: 0,
+       max_players: 0,
+       ready: true
+     }, state}
+  end
+
+  @impl true
+  def handle_cast({:handle_input, player, input}, state) do
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:add_player, player}, state) do
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:remove_player, player}, state) do
+    {:noreply, state}
+  end
+
+  @impl true
   defp start_fading_out(%State{} = state) do
     %State{state | fading_out: true, fader: %{state.fader | direction: :dec}}
   end
