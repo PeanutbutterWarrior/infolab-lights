@@ -16,9 +16,9 @@ defmodule Coordinator do
   end
 
   # Maximum duration for a queued activity
-  @queued_max_time 60 * 10
+  @queued_max_time 60 * 10 * 1000
   # Maximum duration for a randomly picked activity
-  @random_max_time 60 * 5
+  @random_max_time 60 * 5 * 1000
 
   def start_link(_opts) do
     GenServer.start_link(
@@ -40,9 +40,20 @@ defmodule Coordinator do
 
   @impl true
   def handle_cast(:terminate_activity, %State{} = state) do
+    state = terminate(state)
+    {:noreply, state, {:continue, :tick}}
+  end
+
+  @impl true
+  def handle_info(:terminate_activity, %State{} = state) do
+    state = terminate(state)
+    {:noreply, state, {:continue, :tick}}
+  end
+
+  defp terminate(%State{} = state) do
     if !is_nil(state.current_activity) do
       id = state.current_activity
-      try_stop(via_tuple(id))
+      try_stop(id)
 
       Phoenix.PubSub.broadcast!(
         InfolabLightGames.PubSub,
@@ -52,7 +63,7 @@ defmodule Coordinator do
     end
     state = %State{state | current_activity: nil}
     push_status(state)
-    {:noreply, state, {:continue, :tick}}
+    state
   end
 
   @impl true
@@ -96,13 +107,14 @@ defmodule Coordinator do
   @impl true
   def handle_call({:queue_activity, module, mode, player}, _from, state) do
     state = update_in(state.queue, &Qex.push(&1, {module, mode, player}))
-    {:reply, {:ok, Enum.count(state.queue)}, state, {:continue, :tick}}
+    {:reply, :ok, state, {:continue, :tick}}
   end
 
   @impl true
   def handle_continue(:tick, %State{} = state) do
-    # If timer shouldn't be enforced (random activity, not queued) then start next activity
-    state = if !state.enforce_timer  do
+    # If timer shouldn't be enforced (random activity, not queued) and theres a queued activity, start it
+    state =
+    if is_nil(state.current_activity) || (Enum.count(state.queue) > 0 && !state.enforce_timer)  do
       if state.timer do
         Process.cancel_timer(state.timer)
       end
@@ -132,7 +144,7 @@ defmodule Coordinator do
     Logger.info("Starting activity #{module}:#{inspect(mode)}")
 
     # Stop the current activity if it exists
-    if !is_nil(state.current_activity) do
+    if state.current_activity do
       # We need to stop the activity immediately to stop it drawing over the new one
       try_stop(state.current_activity)
     end
@@ -210,7 +222,7 @@ defmodule Coordinator do
 
   defp get_random_activity() do
     # Chosen by random dice roll
-    {IdleAnimations.Ant, {:original, "Langtons ant"}, nil}
+    {IdleAnimations.Ant, :original, nil}
   end
 
   def terminate_activity() do
