@@ -114,7 +114,7 @@ defmodule InfolabLightGamesWeb.PageLive do
     Logger.info("Queueing #{animation_name}")
 
     {module, {mode, name}} = Coordinator.idle_animation_for_name(animation_name)
-    :ok = Coordinator.queue_activity(module, {mode, name}, nil)
+    {:ok, _id} = Coordinator.queue_activity(module, {mode, name}, nil)
 
     socket =
       socket

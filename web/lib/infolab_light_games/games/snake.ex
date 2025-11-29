@@ -118,16 +118,11 @@ defmodule Games.Snake do
 
   @impl true
   def handle_call({:remove_player, player}, _from, %State{player: p} = state) do
-    state =
-      if player == p do
-        Coordinator.terminate_activity()
-
-        %State{state | player: nil}
-      else
-        state
-      end
-
-    {:reply, :ok, state}
+    if player == p do
+      {:stop, :normal, :ok, %State{state | player: nil}}
+    else
+      {:reply, :ok, state}
+    end
   end
 
   @impl true

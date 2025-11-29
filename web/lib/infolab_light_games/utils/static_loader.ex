@@ -11,12 +11,12 @@ defmodule Utils.StaticLoader do
     img = File.read!(filepath)
     images = NativeMatrix.load_from_image(img, width, height)
 
-    _id = Coordinator.queue_activity(Games.Static, %{images: images}, nil)
+    {:ok, id} = Coordinator.queue_activity(Games.Static, %{images: images}, nil)
 
     :timer.apply_after(
       duration |> Timex.Duration.to_milliseconds(truncate: true),
       Coordinator,
-      :terminate_activity,
+      {:terminate_activity, id},
       []
     )
   end

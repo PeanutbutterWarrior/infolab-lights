@@ -2,14 +2,15 @@ defmodule Coordinator do
   use GenServer, restart: :transient
   require Logger
 
-  @type via_tuple() :: {:via, atom(), {atom(), String.t()}}
+  @type via_tuple :: {:via, atom(), {atom(), String.t()}}
+  @type activity_id :: binary()
 
   defmodule State do
     use TypedStruct
 
     typedstruct enforce: true do
-      field(:queue, Qex.t({module(), any(), binary()}))
-      field(:current_activity, Coodinator.via_tuple() | none())
+      field(:queue, :queue.queue({module(), any(), binary(), Coordinator.activity_id()}))
+      field(:current_activity, Coordinator.via_tuple() | none())
       field(:timer, reference() | none())
       field(:enforce_timer, boolean())
     end
@@ -24,7 +25,7 @@ defmodule Coordinator do
     GenServer.start_link(
       __MODULE__,
       %State{
-        queue: Qex.new(),
+        queue: :queue.new(),
         current_activity: nil,
         timer: nil,
         enforce_timer: false,
@@ -39,29 +40,37 @@ defmodule Coordinator do
   end
 
   @impl true
-  def handle_cast(:terminate_activity, %State{} = state) do
-    state = terminate(state)
+  def handle_cast({:terminate_activity, id}, %State{} = state) do
+    state = terminate(id, state)
     {:noreply, state, {:continue, :tick}}
   end
 
   @impl true
-  def handle_info(:terminate_activity, %State{} = state) do
-    state = terminate(state)
+  def handle_info({:terminate_activity, id}, %State{} = state) do
+    state = terminate(id, state)
     {:noreply, state, {:continue, :tick}}
   end
 
-  defp terminate(%State{} = state) do
-    if !is_nil(state.current_activity) do
-      id = state.current_activity
-      try_stop(id)
-
-      Phoenix.PubSub.broadcast!(
-        InfolabLightGames.PubSub,
-        "coordinator:status",
-        {:activity_terminated, id}
-      )
+  defp terminate(activity_id, %State{} = state) do
+    state =
+    cond do
+      # Current activity is the one to be terminated
+      state.current_activity == via_tuple(activity_id) ->
+        try_stop(state.current_activity)
+        %State{state | current_activity: nil}
+      # Queue contains activity to be terminated
+      :queue.any(fn {_, _, _, id} -> id == activity_id end, state.queue) ->
+        queue = :queue.delete_with(fn {_, _, _, id} -> id == activity_id end, state.queue)
+        %State{state | queue: queue}
+      # No activity has that id
+      true ->
+        state
     end
-    state = %State{state | current_activity: nil}
+    Phoenix.PubSub.broadcast!(
+      InfolabLightGames.PubSub,
+      "coordinator:status",
+      {:activity_terminated, activity_id}
+    )
     push_status(state)
     state
   end
@@ -105,16 +114,18 @@ defmodule Coordinator do
   end
 
   @impl true
-  def handle_call({:queue_activity, module, mode, player}, _from, state) do
-    state = update_in(state.queue, &Qex.push(&1, {module, mode, player}))
-    {:reply, :ok, state, {:continue, :tick}}
+  def handle_call({:queue_activity, module, mode, player}, _from, %State{} = state) do
+    id = random_id()
+    queue = :queue.in({module, mode, player, id}, state.queue)
+    state = %State{state | queue: queue}
+    {:reply, {:ok, id}, state, {:continue, :tick}}
   end
 
   @impl true
   def handle_continue(:tick, %State{} = state) do
     # If timer shouldn't be enforced (random activity, not queued) and theres a queued activity, start it
     state =
-    if is_nil(state.current_activity) || (Enum.count(state.queue) > 0 && !state.enforce_timer)  do
+    if is_nil(state.current_activity) || (:queue.len(state.queue) > 0 && !state.enforce_timer)  do
       if state.timer do
         Process.cancel_timer(state.timer)
       end
@@ -135,11 +146,11 @@ defmodule Coordinator do
 
   defp start_new_activity(state) do
     # Get the first item in the queue or else pick a random activity
-    {new_game, queue, maximum_duration, enforce_timer} = case Qex.pop(state.queue) do
+    {new_game, queue, maximum_duration, enforce_timer} = case :queue.out(state.queue) do
         {{:value, ng}, q} -> {ng, q, @queued_max_time, true}
         {:empty, q} -> {get_random_activity(), q, @random_max_time, false}
     end
-    {module, mode, initial_player} = new_game
+    {module, mode, initial_player, id} = new_game
 
     Logger.info("Starting activity #{module}:#{inspect(mode)}")
 
@@ -148,8 +159,6 @@ defmodule Coordinator do
       # We need to stop the activity immediately to stop it drawing over the new one
       try_stop(state.current_activity)
     end
-
-    id = random_id()
 
     {:ok, pid} = DynamicSupervisor.start_child(
       GameManager,
@@ -169,7 +178,7 @@ defmodule Coordinator do
       GenServer.call(pid, {:add_player, initial_player})
     end
 
-    timer = Process.send_after(self(), :terminate_activity, maximum_duration)
+    timer = Process.send_after(self(), {:terminate_activity, id}, maximum_duration)
 
     state = %State {
       queue: queue,
@@ -196,7 +205,8 @@ defmodule Coordinator do
       nil
     end
 
-    queue = Enum.map(state.queue, &GenServer.call(&1, :get_status))
+    #queue = :queue.filtermap(&{true, GenServer.call(&1, :get_status)}, state.queue) |> :queue.to_list()
+    queue = []
 
     %CoordinatorStatus{
       current_activity: current,
@@ -222,12 +232,12 @@ defmodule Coordinator do
 
   defp get_random_activity() do
     # Chosen by random dice roll
-    {IdleAnimations.Ant, :original, nil}
+    {IdleAnimations.Ant, :original, nil, random_id()}
   end
 
-  def terminate_activity() do
+  def terminate_activity(id) do
     Logger.info("Terminating current activity")
-    GenServer.cast(__MODULE__, :terminate_activity)
+    GenServer.cast(__MODULE__, {:terminate_activity, id})
   end
 
   def route_input(player, input) do

@@ -133,10 +133,10 @@ defmodule Games.Pong do
       end
 
     if state.running or Enum.all?([state.left_player, state.right_player], &is_nil/1) do
-      Coordinator.terminate_activity()
+      {:stop, :normal, :ok, state}
+    else
+      {:reply, :ok, state}
     end
-
-    {:reply, :ok, state}
   end
 
   @impl true
