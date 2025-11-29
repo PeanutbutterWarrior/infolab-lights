@@ -42,6 +42,33 @@ defmodule IdleAnimations.GOL do
   end
 
   @impl true
+  def handle_call(:get_status, _from, state) do
+    {:reply,
+     %GameStatus{
+       id: state.id,
+       name: "JS Impl",
+       players: 0,
+       max_players: 0,
+       ready: true
+     }, state}
+  end
+
+  @impl true
+  def handle_cast({:handle_input, _player, _input}, state) do
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:add_player, _player}, state) do
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:remove_player, _player}, state) do
+    {:noreply, state}
+  end
+
+  @impl true
   def handle_info(:tick, %State{} = state) do
     render(state)
 
