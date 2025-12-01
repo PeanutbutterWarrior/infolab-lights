@@ -10,7 +10,7 @@ defmodule Coordinator do
 
     typedstruct enforce: true do
       field(:queue, :queue.queue(Coordinator.QueuedActivity))
-      field(:current_activity, Coordinator.via_tuple() | none())
+      field(:current_activity, String.t() | none())
       field(:timer, reference() | none())
       field(:enforce_timer, boolean())
     end
@@ -55,7 +55,7 @@ defmodule Coordinator do
   @impl true
   def handle_cast({:route_input, player, input}, state) do
     if state.current_activity do
-      GenServer.cast(state.current_activity, {:handle_input, player, input})
+      GenServer.cast(via_tuple(state.current_activity), {:handle_input, player, input})
     end
 
     {:noreply, state}
@@ -71,7 +71,7 @@ defmodule Coordinator do
     try_stop(activity_id)
     state =
     cond do
-      state.current_activity == via_tuple(activity_id) ->
+      state.current_activity == activity_id ->
         # Current activity is the one to be terminated
         Process.cancel_timer(state.timer)
         %State{state | current_activity: nil, timer: nil}
@@ -112,20 +112,21 @@ defmodule Coordinator do
       timer = Process.send_after(self(), {:terminate_activity, id}, max_time)
       %State{
         queue: queue,
-        current_activity: via_tuple(id),
+        current_activity: id,
         timer: timer,
         enforce_timer: enforce_timer
       }
     else
       state
     end
+    push_status(state)
     {:noreply, state}
   end
 
   @impl true
   def handle_continue(:check_current_activity, %State{} = state) do
     cond do
-      state.current_activity == nil ->
+      !state.current_activity ->
         {:noreply, state, {:continue, :start_activity}}
       :queue.len(state.queue) > 0 && !state.enforce_timer ->
         {:noreply, state, {:continue, {:terminate_activity, state.current_activity}}}
@@ -213,7 +214,7 @@ defmodule Coordinator do
 
   defp get_status(%State{} = state) do
     current = if !is_nil(state.current_activity) do
-      GenServer.call(state.current_activity, :get_status)
+      GenServer.call(via_tuple(state.current_activity), :get_status)
     else
       nil
     end
@@ -237,9 +238,9 @@ defmodule Coordinator do
     {:via, Registry, {GameRegistry, id}}
   end
 
-  defp try_stop(pid) do
-    if GenServer.whereis(pid) do
-      GenServer.stop(pid)
+  defp try_stop(id) do
+    if GenServer.whereis(via_tuple(id)) do
+      GenServer.stop(via_tuple(id))
     end
   end
 
