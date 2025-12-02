@@ -222,13 +222,16 @@ addEventListener("DOMContentLoaded", () => {
       });
     });
     playerInputBox.appendChild(newPlayer);
+    currentEffect.addPlayer(numPlayers + 1)
   });
 
   document.getElementById("remove-player-button").addEventListener("click", () => {
     let playerInputBox = document.getElementById("player-input-box");
     let lastChild = playerInputBox.lastElementChild;
+    let numPlayers = playerInputBox.childElementCount;
     if (lastChild !== null)
       playerInputBox.removeChild(lastChild)
+    currentEffect.removePlayer(numPlayers)
   });
 
   setInterval(() => {
