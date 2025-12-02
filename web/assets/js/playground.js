@@ -152,6 +152,8 @@ addEventListener("DOMContentLoaded", () => {
   document.getElementById("reload-effect-button").addEventListener(
     "click",
     () => {
+      let playerInputBox = document.getElementById("player-input-box");
+      playerInputBox.textContent = "";
       const body = [...editor.state.doc.iter()].join("\n");
       try {
         const f = Function(body);
@@ -200,9 +202,7 @@ addEventListener("DOMContentLoaded", () => {
 
     if (typeof currentEffect.onKeypress !== "function")
       return;
-    
-    console.log(event.target);
-    console.log(event.target.parentNode)
+
     let button = event.target;
     if (button.tagName != "DIV") // Hacky workaround for reloading after adding players, should fix
       button = button.parentNode;
