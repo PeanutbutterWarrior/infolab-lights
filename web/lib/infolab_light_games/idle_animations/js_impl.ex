@@ -31,6 +31,9 @@ defmodule IdleAnimations.JSImpl do
       field(:steps, non_neg_integer(), default: 0)
       field(:steps_since_last_frame, non_neg_integer(), default: 0)
       field(:last_frame_time, non_neg_integer(), default: 0)
+
+      field(:players, %{pid() => non_neg_integer()}, default: %{})
+      field(:num_players, non_neg_integer(), default: 0)
     end
   end
 
@@ -68,28 +71,44 @@ defmodule IdleAnimations.JSImpl do
 
   @impl true
   def handle_call(:get_status, _from, state) do
+    max_players = if state.name == "snake" do 1 else 0 end
     {:reply,
      %GameStatus{
        id: state.id,
        name: state.name,
-       players: 0,
-       max_players: 0,
+       players: state.num_players,
+       max_players: max_players,
        ready: true
      }, state}
   end
 
-  @impl true
-  def handle_cast({:handle_input, _player, _input}, state) do
-    {:noreply, state}
+    @impl true
+  def handle_call({:add_player, player}, _from, %State{} = state) do
+    dbg(player)
+    state = %State{state | num_players: state.num_players + 1, players: Map.put(state.players, player, state.num_players + 1)}
+    cmd = Jason.encode!(%{msg: :addPlayer, player: state.num_players})
+    Exile.Process.write(state.process, "#{cmd}\n")
+    {:reply, :ok, state}
   end
 
   @impl true
-  def handle_cast({:add_player, _player}, state) do
-    {:noreply, state}
+  def handle_call({:remove_player, player}, _from, %State{} = state) do
+    player_num = Map.get(state.players, player)
+    if player_num do
+      cmd = Jason.encode!(%{msg: :removePlayer, player: player_num})
+      Exile.Process.write(state.process, "#{cmd}\n")
+    end
+    state = %State{state | num_players: state.num_players - 1, players: Map.delete(state.players, player)}
+    {:reply, :ok, state}
   end
 
   @impl true
-  def handle_cast({:remove_player, _player}, state) do
+  def handle_cast({:handle_input, player, input}, state) do
+    player_num = Map.get(state.players, player)
+    if player_num do
+      cmd = Jason.encode!(%{msg: :handleInput, key: elem(input, 1), player: player_num})
+      Exile.Process.write(state.process, "#{cmd}\n")
+    end
     {:noreply, state}
   end
 
@@ -131,12 +150,12 @@ defmodule IdleAnimations.JSImpl do
 
             :eof ->
               Logger.info("JS sent EOF")
-              GenServer.call(me, :terminate)
+              GenServer.cast(me, :terminate)
               nil
 
             {:error, e} ->
               Logger.error("JS sent error: #{e}")
-              GenServer.call(me, :terminate)
+              GenServer.cast(me, :terminate)
               nil
           end
         catch

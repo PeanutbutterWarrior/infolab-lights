@@ -104,7 +104,6 @@ return class MyEffect {
       Math.floor(Math.random() * pixelWidth),
       Math.floor(Math.random() * pixelHeight),
     ]
-    console.log(this.apple)
   }
 
   #clear() {

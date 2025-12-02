@@ -32,34 +32,43 @@ class Display {
     #buffer;
 
     constructor(width, height) {
-    this.width = width;
-    this.height = height;
+        this.width = width;
+        this.height = height;
 
-    this.#buffer = Array.from(Array(width), () => Array.from(Array(height), () => [0, 0, 0]));
+        this.#buffer = Array.from(Array(width), () => Array.from(Array(height), () => [0, 0, 0]));
     }
 
     setPixel(x, y, [r, g, b]) {
-    this.#buffer[x][y] = [r, g, b];
+        this.#buffer[x][y] = [r, g, b];
     }
 
     flush() {
-    const pixels = this.#buffer.flatMap((col, x) => {
-        return col.map(([r, g, b], y) => ({x: x | 0, y: y | 0, v: [r | 0, g | 0, b | 0]}));
-    });
+        const pixels = this.#buffer.flatMap((col, x) => {
+            return col.map(([r, g, b], y) => ({
+                x: x | 0,
+                y: y | 0,
+                v: [r | 0, g | 0, b | 0]
+            }));
+        });
 
-    const chunkSize = 1000;
-    const len = pixels.length;
-    for (let i = 0; i < len; i += chunkSize) {
-        writeAllSync(Deno.stdout, pack(pixels.slice(i, i + chunkSize)));
+        const chunkSize = 1000;
+        const len = pixels.length;
+        for (let i = 0; i < len; i += chunkSize) {
+            writeAllSync(Deno.stdout, pack(pixels.slice(i, i + chunkSize)));
+        }
     }
-    }
+}
+
+function callIfPossible(obj, method, args = []) {
+    if (method != null)
+        method.apply(obj, args);
 }
 
 const effect = (() => {
 /*{CodeHere}*/
 })();
 
-const inst = new effect(new Display(/*{ScreenWidth}*/, /*{ScreenHeight}*/));
+const inst = new effect(new Display( /*{ScreenWidth}*/ , /*{ScreenHeight}*/ ));
 
 while (true) {
     let r = new TextDecoder().decode(await readStdin()).trim();
@@ -67,9 +76,20 @@ while (true) {
         console.log("Empty string received, quitting");
         break;
     }
-    let {msg: msg} = JSON.parse(r);
+    let command = JSON.parse(r);
 
-    // msg should always be "tick"
-
-    inst.update();
+    switch (command.msg) {
+        case "tick":
+            callIfPossible(inst, inst.update);
+            break;
+        case "handleInput":
+            callIfPossible(inst, inst.onKeypress, [command.key, command.player]);
+            break;
+        case "addPlayer":
+            callIfPossible(inst, inst.addPlayer, [command.player]);
+            break;
+        case "removePlayer":
+            callIfPossible(inst, inst.removePlayer, [command.player]);
+            break;
+    }
 }

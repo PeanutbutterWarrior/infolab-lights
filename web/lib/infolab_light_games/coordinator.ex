@@ -136,7 +136,6 @@ defmodule Coordinator do
     end
   end
 
-  # TODO
   @impl true
   def handle_call({:join_game, id, player}, _from, state) do
     try do
@@ -148,7 +147,6 @@ defmodule Coordinator do
     {:reply, id, state, {:continue, :check_current_activity}}
   end
 
-  # TODO
   @impl true
   def handle_call({:leave_game, id, player}, _from, state) do
     try do
