@@ -56,10 +56,10 @@ class Display {
 }
 
 const effect = (() => {
-    // Code
+/*{CodeHere}*/
 })();
 
-const inst = new effect(new Display(120, 80));
+const inst = new effect(new Display(/*{ScreenWidth}*/, /*{ScreenHeight}*/));
 
 while (true) {
     let r = new TextDecoder().decode(await readStdin()).trim();

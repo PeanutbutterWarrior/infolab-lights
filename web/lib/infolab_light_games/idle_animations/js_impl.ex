@@ -17,7 +17,8 @@ defmodule IdleAnimations.JSImpl do
 
     typedstruct enforce: true do
       field(:id, String.t())
-      field(:file, {Path.t(), :js | :ts})
+      field(:file, Path.t())
+      field(:name, String.t())
 
       field(:matrix, NativeMatrix.t())
       field(:process, Exile.Process.process() | nil, default: nil)
@@ -40,7 +41,8 @@ defmodule IdleAnimations.JSImpl do
 
     state = %State{
       id: Keyword.fetch!(options, :game_id),
-      file: mode,
+      file: elem(mode, 0),
+      name: elem(mode, 1),
       matrix: NativeMatrix.of_dims(screen_x, screen_y, Pixel.empty())
     }
 
@@ -49,19 +51,12 @@ defmodule IdleAnimations.JSImpl do
     GenServer.start_link(__MODULE__, state, options)
   end
 
-  defp ftype(name) do
-    case Path.extname(name) do
-      ".js" -> :js
-      ".ts" -> :ts
-    end
-  end
-
   @impl true
   def possible_modes do
     Application.app_dir(:infolab_light_games, "priv")
     |> Path.join("js_effects/*.{js,ts}")
     |> Path.wildcard()
-    |> Enum.map(&{{&1, ftype(&1)}, Path.basename(&1, Path.extname(&1))})
+    |> Enum.map(&{&1, Path.basename(&1, Path.extname(&1))})
   end
 
   @impl true
@@ -76,7 +71,7 @@ defmodule IdleAnimations.JSImpl do
     {:reply,
      %GameStatus{
        id: state.id,
-       name: elem(state.file, 1),
+       name: state.name,
        players: 0,
        max_players: 0,
        ready: true
@@ -105,212 +100,17 @@ defmodule IdleAnimations.JSImpl do
   end
 
   @impl true
-  def handle_continue(:start, %State{file: {{src_file, :ts}, _}} = state) do
+  def handle_continue(:start, %State{file: src_file} = state) do
     deno = System.find_executable("deno")
-    {tmp, path} = Temp.open!(%{suffix: ".ts"})
+    {tmp, path} = Temp.open!(%{suffix: ".ts", mode: [:utf8, :read, :write]})
     {screen_x, screen_y} = Screen.dims()
 
     src = File.read!(src_file)
-
-    content = """
-    import { writeAllSync } from "https://deno.land/std@0.113.0/streams/conversion.ts";
-    import { pack } from 'https://deno.land/x/msgpackr@v1.3.2/index.js';
-
-    async function readStdin() {
-        const bytes = [];
-
-        while (true) {
-            const buffer = new Uint8Array(1);
-            const readStatus = await Deno.stdin.read(buffer);
-
-            if (readStatus === null || readStatus === 0) {
-                break;
-            }
-
-            const byte = buffer[0];
-
-            if (byte === 10) {
-                break;
-            }
-
-            bytes.push(byte);
-        }
-
-        return Uint8Array.from(bytes);
-    }
-
-    class Display {
-      #buffer: Array<Array<[number, number, number]>>;
-      width: number;
-      height: number;
-
-      constructor(width: number, height: number) {
-        this.width = width;
-        this.height = height;
-
-        this.#buffer = Array.from(Array(width), () => Array.from(Array(height), () => [0, 0, 0]));
-      }
-
-      setPixel(x: number, y: number, [r, g, b]: [number, number, number]) {
-        this.#buffer[x][y] = [r, g, b];
-      }
-
-      flush() {
-        const pixels = this.#buffer.flatMap((col, x) => {
-          return col.map(([r, g, b], y) => ({x: x | 0, y: y | 0, v: [r | 0, g | 0, b | 0]}));
-        });
-
-        const chunkSize = 1000;
-        const len = pixels.length;
-        for (let i = 0; i < len; i += chunkSize) {
-          writeAllSync(Deno.stdout, pack(pixels.slice(i, i + chunkSize)));
-        }
-      }
-    }
-
-    namespace Effect {
-      #{src}
-    }
-
-    const effect = Object.values(Effect)[0];
-
-    interface EffectInterface {
-      update(): null;
-    }
-
-    interface EffectConstructor {
-      new (display: Display): EffectInterface;
-    }
-
-    const inst = new (effect as unknown as EffectConstructor)(new Display(#{screen_x}, #{screen_y}));
-
-    while (true) {
-        let r = new TextDecoder().decode(await readStdin())
-        let {msg: msg} = JSON.parse(r.trim());
-
-        // msg should always be "tick"
-
-        inst.update();
-    }
-
-    """
-
-    IO.write(tmp, content)
-    File.close(tmp)
-
-    {:ok, s} = Exile.Process.start_link(~w(#{deno} run --allow-net -q #{path}))
-
-    me = self()
-
-    Task.start_link(fn ->
-      Logger.info("starting up js process reader")
-
-      Exile.Process.change_pipe_owner(s, :stdout, self())
-
-      Stream.unfold(nil, fn _ ->
-        case Exile.Process.read(s) do
-          {:ok, data} ->
-            send(me, {:data_from_js, data})
-            {nil, nil}
-
-          _ ->
-            GenServer.call(me, :terminate)
-        end
-      end)
-      |> Stream.run()
-    end)
-
-    state = %State{state | process: s, tmp_file: path}
-
-    {:noreply, state}
-  end
-
-  @impl true
-  def handle_continue(:start, %State{file: {{src_file, :js}, _}} = state) do
-    deno = System.find_executable("deno")
-    {tmp, path} = Temp.open!(%{suffix: ".js"})
-    {screen_x, screen_y} = Screen.dims()
-
-    src = File.read!(src_file)
-
-    content = """
-    import { writeAllSync } from "https://deno.land/std@0.113.0/streams/conversion.ts";
-    import { pack } from 'https://deno.land/x/msgpackr@v1.3.2/index.js';
-
-    console.log = console.trace;
-    console.debug = console.trace;
-    console.info = console.trace;
-
-    async function readStdin() {
-        const bytes = [];
-
-        while (true) {
-            const buffer = new Uint8Array(1);
-            const readStatus = await Deno.stdin.read(buffer);
-
-            if (readStatus === null || readStatus === 0) {
-                break;
-            }
-
-            const byte = buffer[0];
-
-            if (byte === 10) {
-                break;
-            }
-
-            bytes.push(byte);
-        }
-
-        return Uint8Array.from(bytes);
-    }
-
-    class Display {
-      #buffer;
-
-      constructor(width, height) {
-        this.width = width;
-        this.height = height;
-
-        this.#buffer = Array.from(Array(width), () => Array.from(Array(height), () => [0, 0, 0]));
-      }
-
-      setPixel(x, y, [r, g, b]) {
-        this.#buffer[x][y] = [r, g, b];
-      }
-
-      flush() {
-        const pixels = this.#buffer.flatMap((col, x) => {
-          return col.map(([r, g, b], y) => ({x: x | 0, y: y | 0, v: [r | 0, g | 0, b | 0]}));
-        });
-
-        const chunkSize = 1000;
-        const len = pixels.length;
-        for (let i = 0; i < len; i += chunkSize) {
-          writeAllSync(Deno.stdout, pack(pixels.slice(i, i + chunkSize)));
-        }
-      }
-    }
-
-    const effect = (() => {
-        #{src}
-    })();
-
-    const inst = new effect(new Display(#{screen_x}, #{screen_y}));
-
-    while (true) {
-        let r = new TextDecoder().decode(await readStdin()).trim();
-        if (!r) {
-          console.log("Empty string received, quitting");
-          break;
-        }
-        let {msg: msg} = JSON.parse(r);
-
-        // msg should always be "tick"
-
-        inst.update();
-    }
-
-    """
+    framework = File.read!(Application.app_dir(:infolab_light_games, ["priv", "running_framework.js"]))
+    content = framework
+              |> String.replace("/*{CodeHere}*/", src)
+              |> String.replace("/*{ScreenWidth}*/", inspect(screen_x))
+              |> String.replace("/*{ScreenHeight}*/", inspect(screen_y))
 
     IO.write(tmp, content)
     File.close(tmp)
