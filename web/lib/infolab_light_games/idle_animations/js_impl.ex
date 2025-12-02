@@ -66,8 +66,6 @@ defmodule IdleAnimations.JSImpl do
 
   @impl true
   def init(%State{} = state) do
-    tick_request()
-
     Temp.track!()
 
     {:ok, state, {:continue, :start}}
@@ -78,7 +76,7 @@ defmodule IdleAnimations.JSImpl do
     {:reply,
      %GameStatus{
        id: state.id,
-       name: "JS Impl",
+       name: elem(state.file, 1),
        players: 0,
        max_players: 0,
        ready: true
@@ -97,6 +95,12 @@ defmodule IdleAnimations.JSImpl do
 
   @impl true
   def handle_cast({:remove_player, _player}, state) do
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast(:start, state) do
+    tick_request();
     {:noreply, state}
   end
 

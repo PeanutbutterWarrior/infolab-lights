@@ -92,7 +92,6 @@
 
             <nav class="panel">
                 <p class="panel-heading">Queue</p>
-                <%= if false do %>
                 <%= for game <- @coordinator_status.queue do %>
                     <div class="box">
                         <nav class="level">
@@ -103,24 +102,25 @@
                                 <span class="level-item tag is-info"><%= game.players %>/<%= game.max_players %> players</span>
                             </div>
                         </nav>
-                        <nav class="level">
-                            <div class="level-left">
-                                <button class="level-item button is-small is-primary" phx-click="join"
-                                        phx-value-game-id={game.id}
-                                        {if game.ready or @game_id, do: [disabled: ""], else: []}>
-                                    Join game
-                                </button>
-                            </div>
-                            <div class="level-right">
-                                <button class="level-item button is-small is-danger" phx-click="leave"
-                                        phx-value-game-id={game.id}
-                                        {if game.id != @game_id, do: [disabled: ""], else: []}>
-                                    Leave game
-                                </button>
-                            </div>
-                        </nav>
+                        <%= if game.max_players > 0 do %>
+                            <nav class="level">
+                                <div class="level-left">
+                                    <button class="level-item button is-small is-primary" phx-click="join"
+                                            phx-value-game-id={game.id}
+                                            {if game.ready or @game_id, do: [disabled: ""], else: []}>
+                                        Join game
+                                    </button>
+                                </div>
+                                <div class="level-right">
+                                    <button class="level-item button is-small is-danger" phx-click="leave"
+                                            phx-value-game-id={game.id}
+                                            {if game.id != @game_id, do: [disabled: ""], else: []}>
+                                        Leave game
+                                    </button>
+                                </div>
+                            </nav>
+                        <% end %>
                     </div>
-                <% end %>
                 <% end %>
             </nav>
         </div>

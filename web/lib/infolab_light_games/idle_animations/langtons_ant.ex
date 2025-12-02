@@ -60,8 +60,6 @@ defmodule IdleAnimations.Ant do
 
   @impl true
   def init(state) do
-    tick_request()
-
     {:ok, state}
   end
 
@@ -88,6 +86,12 @@ defmodule IdleAnimations.Ant do
   @impl true
   def handle_cast(:terminate, state) do
     {:noreply, start_fading_out(state)}
+  end
+
+  @impl true
+  def handle_cast(:start, state) do
+    tick_request()
+    {:noreply, state}
   end
 
   @impl true

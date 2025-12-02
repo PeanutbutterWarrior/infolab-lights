@@ -92,7 +92,6 @@ defmodule Coordinator do
       "coordinator:status",
       {:activity_terminated, activity_id}
     )
-    push_status(state)
 
     {:noreply, state, {:continue, :start_activity}}
   end
@@ -109,6 +108,7 @@ defmodule Coordinator do
           {module, mode} = get_random_activity()
           {start_new_activity(module, mode), q, @random_max_time, false}
       end
+      GenServer.cast(via_tuple(id), :start)
       timer = Process.send_after(self(), {:terminate_activity, id}, max_time)
       %State{
         queue: queue,
@@ -131,6 +131,7 @@ defmodule Coordinator do
       :queue.len(state.queue) > 0 && !state.enforce_timer ->
         {:noreply, state, {:continue, {:terminate_activity, state.current_activity}}}
       true ->
+        push_status(state)
         {:noreply, state}
     end
   end
@@ -219,8 +220,7 @@ defmodule Coordinator do
       nil
     end
 
-    #queue = :queue.filtermap(&{true, GenServer.call(&1, :get_status)}, state.queue) |> :queue.to_list()
-    queue = []
+    queue = :queue.filtermap(fn %QueuedActivity{id: id} -> {true, GenServer.call(via_tuple(id), :get_status)} end, state.queue) |> :queue.to_list()
 
     %CoordinatorStatus{
       current_activity: current,
