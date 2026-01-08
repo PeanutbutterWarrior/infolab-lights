@@ -22,7 +22,7 @@ defmodule IdleAnimations.GOL do
   end
 
   def start_link(options) do
-    mode = Keyword.fetch!(options, :mode)
+    mode = elem(Keyword.fetch!(options, :mode), 0)
     {gol_state, max_steps} = get_initial_state(mode)
 
     state = %State{
@@ -52,17 +52,17 @@ defmodule IdleAnimations.GOL do
   end
 
   @impl true
+  def handle_call({:add_player, _player}, _from, %State{} = state) do
+    {:reply, :ok, state}
+  end
+
+  @impl true
+  def handle_call({:remove_player, _player}, _from, %State{} = state) do
+    {:reply, :ok, state}
+  end
+
+  @impl true
   def handle_cast({:handle_input, _player, _input}, state) do
-    {:noreply, state}
-  end
-
-  @impl true
-  def handle_cast({:add_player, _player}, state) do
-    {:noreply, state}
-  end
-
-  @impl true
-  def handle_cast({:remove_player, _player}, state) do
     {:noreply, state}
   end
 
@@ -70,6 +70,11 @@ defmodule IdleAnimations.GOL do
   def handle_cast(:start, state) do
     tick_request()
     {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast(:terminate, %State{} = state) do
+    {:noreply, %State{state | fading_out: true, fader: %{state.fader | direction: :dec}}}
   end
 
   @impl true
@@ -91,11 +96,6 @@ defmodule IdleAnimations.GOL do
     else
       {:stop, :normal, state}
     end
-  end
-
-  @impl true
-  def handle_cast(:terminate, %State{} = state) do
-    {:noreply, %State{state | fading_out: true, fader: %{state.fader | direction: :dec}}}
   end
 
   @impl true

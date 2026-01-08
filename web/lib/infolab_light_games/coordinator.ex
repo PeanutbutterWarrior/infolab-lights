@@ -250,7 +250,7 @@ defmodule Coordinator do
 
   defp get_random_activity() do
     # Chosen by random dice roll
-    {IdleAnimations.Ant, :original}
+    {IdleAnimations.Ant, {:original, "Langtons ant"}}
   end
 
   def terminate_activity(id) do

@@ -82,9 +82,8 @@ defmodule IdleAnimations.JSImpl do
      }, state}
   end
 
-    @impl true
+  @impl true
   def handle_call({:add_player, player}, _from, %State{} = state) do
-    dbg(player)
     state = %State{state | num_players: state.num_players + 1, players: Map.put(state.players, player, state.num_players + 1)}
     cmd = Jason.encode!(%{msg: :addPlayer, player: state.num_players})
     Exile.Process.write(state.process, "#{cmd}\n")
@@ -116,6 +115,13 @@ defmodule IdleAnimations.JSImpl do
   def handle_cast(:start, state) do
     tick_request();
     {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast(:terminate, %State{} = state) do
+    Logger.info("Beginning js effect termination")
+
+    {:noreply, start_fading_out(state)}
   end
 
   @impl true
@@ -209,13 +215,6 @@ defmodule IdleAnimations.JSImpl do
     state = process_input([working_input, msg], state)
 
     {:noreply, state}
-  end
-
-  @impl true
-  def handle_cast(:terminate, %State{} = state) do
-    Logger.info("Beginning js effect termination")
-
-    {:noreply, start_fading_out(state)}
   end
 
   defp fix_int(num) do

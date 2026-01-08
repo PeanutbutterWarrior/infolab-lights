@@ -43,7 +43,7 @@ defmodule IdleAnimations.Ant do
   def start_link(options) do
     {screen_x, screen_y} = Screen.dims()
 
-    mode = Keyword.fetch!(options, :mode)
+    mode = elem(Keyword.fetch!(options, :mode), 0)
     ruleset = get_ruleset(mode)
 
     state_matrix = Matrix.of_dims(screen_x, screen_y, ruleset.default_state)
@@ -95,6 +95,11 @@ defmodule IdleAnimations.Ant do
   end
 
   @impl true
+  def handle_cast({:handle_input, _player, _input}, state) do
+    {:noreply, state}
+  end
+
+  @impl true
   def handle_call(:get_status, _from, state) do
     {:reply,
      %GameStatus{
@@ -107,21 +112,15 @@ defmodule IdleAnimations.Ant do
   end
 
   @impl true
-  def handle_cast({:handle_input, player, input}, state) do
-    {:noreply, state}
+  def handle_call({:add_player, _player}, _from, %State{} = state) do
+    {:reply, :ok, state}
   end
 
   @impl true
-  def handle_cast({:add_player, player}, state) do
-    {:noreply, state}
+  def handle_call({:remove_player, _player}, _from, %State{} = state) do
+    {:reply, :ok, state}
   end
 
-  @impl true
-  def handle_cast({:remove_player, player}, state) do
-    {:noreply, state}
-  end
-
-  @impl true
   defp start_fading_out(%State{} = state) do
     %State{state | fading_out: true, fader: %{state.fader | direction: :dec}}
   end
