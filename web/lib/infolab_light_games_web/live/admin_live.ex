@@ -82,13 +82,6 @@ defmodule InfolabLightGamesWeb.AdminLive do
   end
 
   @impl true
-  def handle_event("terminate-idle-animation", id, socket) do
-    Coordinator.terminate_activity(id)
-
-    {:noreply, socket}
-  end
-
-  @impl true
   def handle_event("ban", %{"phx-ref" => ref}, socket) do
     to_ban =
       format_presences()

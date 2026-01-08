@@ -23,10 +23,6 @@
     </section>
 </header>
 <section class="section">
-    <button class="level-item button is-small is-danger" phx-click="terminate-idle-animation">
-        Terminate idle animation
-    </button>
-
     <div class="columns">
         <div class="column is-half">
             <div class="current_game">
@@ -42,7 +38,7 @@
 
                                 <button class="level-item button is-small is-danger" phx-click="terminate"
                                         phx-value-game-id={@coordinator_status.current_activity.id}>
-                                    Terminate game
+                                    Terminate activity
                                 </button>
                             </div>
                         </nav>
