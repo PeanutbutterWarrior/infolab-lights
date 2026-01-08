@@ -30,18 +30,18 @@
     <div class="columns">
         <div class="column is-half">
             <div class="current_game">
-                <%= if @coordinator_status.current_game do %>
+                <%= if @coordinator_status.current_activity do %>
                     <div class="box">
                         <nav class="level">
                             <div class="level-left">
-                                <span class="level-item"><%= @coordinator_status.current_game.name %></span>
+                                <span class="level-item"><%= @coordinator_status.current_activity.name %></span>
                             </div>
                             <div class="level-right">
-                                <span class="level-item tag is-info"><%= @coordinator_status.current_game.players %>/
-                                    <%= @coordinator_status.current_game.max_players %> players</span>
+                                <span class="level-item tag is-info"><%= @coordinator_status.current_activity.players %>/
+                                    <%= @coordinator_status.current_activity.max_players %> players</span>
 
                                 <button class="level-item button is-small is-danger" phx-click="terminate"
-                                        phx-value-game-id={@coordinator_status.current_game.id}>
+                                        phx-value-game-id={@coordinator_status.current_activity.id}>
                                     Terminate game
                                 </button>
                             </div>
