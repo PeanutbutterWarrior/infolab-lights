@@ -44,7 +44,7 @@ defmodule IdleAnimations.GOL do
     {:reply,
      %GameStatus{
        id: state.id,
-       name: "JS Impl",
+       name: "Game of Life",
        players: 0,
        max_players: 0,
        ready: true
