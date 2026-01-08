@@ -44,6 +44,12 @@ defmodule Coordinator do
 
   @impl true
   def init(state) do
+    # Stop any activities from a crashed coordinator
+    activities = DynamicSupervisor.which_children(GameManager)
+    activities
+    |> Enum.map(&elem(&1, 1)) # Get pids
+    |> Enum.map(&GenServer.stop/1) # Stop them
+
     {:ok, state, {:continue, :check_current_activity}}
   end
 
