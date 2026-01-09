@@ -38,10 +38,10 @@
                                     </div>
                                 </div>
                             </div>
-                            <button class="button is-primary" phx-click="queue-activity" phx-value-activity-name="snake-ex-game" {if @game_id, do: [disabled: ""], else: []}>
+                            <button class="button is-primary" phx-click="queue-activity" phx-value-activity-name="snake-ex-game" {if @queued_activity_id, do: [disabled: ""], else: []}>
                                 <strong>Play snake</strong>
                             </button>
-                            <button class="button is-primary" phx-click="queue-activity" phx-value-activity-name="pong-ex-game" {if @game_id, do: [disabled: ""], else: []}>
+                            <button class="button is-primary" phx-click="queue-activity" phx-value-activity-name="pong-ex-game" {if @queued_activity_id, do: [disabled: ""], else: []}>
                                 <strong>Queue pong</strong>
                             </button>
                         </div>
@@ -125,14 +125,14 @@
                                 <div class="level-left">
                                     <button class="level-item button is-small is-primary" phx-click="join"
                                             phx-value-game-id={game.id}
-                                            {if game.ready or @game_id, do: [disabled: ""], else: []}>
+                                            {if game.ready and is_nil(@joined_games[game.id]), do: [disabled: ""], else: []}>
                                         Join game
                                     </button>
                                 </div>
                                 <div class="level-right">
                                     <button class="level-item button is-small is-danger" phx-click="leave"
                                             phx-value-game-id={game.id}
-                                            {if game.id != @game_id, do: [disabled: ""], else: []}>
+                                            {if @joined_games[game.id], do: [disabled: ""], else: []}>
                                         Leave game
                                     </button>
                                 </div>
