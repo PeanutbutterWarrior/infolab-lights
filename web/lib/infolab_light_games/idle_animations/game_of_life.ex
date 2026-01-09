@@ -103,7 +103,7 @@ defmodule IdleAnimations.GOL do
     [{:random, "Random GOL"}, {:glider, "Glider GOL"}]
   end
 
-  defp get_initial_state(mode) do
+  defp get_initial_state({mode, _}) do
     {screen_x, screen_y} = Screen.dims()
 
     case mode do
