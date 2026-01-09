@@ -31,17 +31,17 @@
                                 <div class="dropdown-menu" id="anim-queue-dropdown-menu" role="menu">
                                     <div class="dropdown-content">
                                         <%= for opt <- @animation_names do %>
-                                            <a class="dropdown-item" phx-click="queue-animation" phx-value-animation-name={opt}>
+                                            <a class="dropdown-item" phx-click="queue-activity" phx-value-activity-name={opt}>
                                                 <%= opt %>
                                             </a>
                                         <% end %>
                                     </div>
                                 </div>
                             </div>
-                            <button class="button is-primary" phx-click="queue" phx-value-game-name="snake" {if @game_id, do: [disabled: ""], else: []}>
+                            <button class="button is-primary" phx-click="queue-activity" phx-value-activity-name="snake-ex-game" {if @game_id, do: [disabled: ""], else: []}>
                                 <strong>Play snake</strong>
                             </button>
-                            <button class="button is-primary" phx-click="queue" phx-value-game-name="pong" {if @game_id, do: [disabled: ""], else: []}>
+                            <button class="button is-primary" phx-click="queue-activity" phx-value-activity-name="pong-ex-game" {if @game_id, do: [disabled: ""], else: []}>
                                 <strong>Queue pong</strong>
                             </button>
                         </div>

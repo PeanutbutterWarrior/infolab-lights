@@ -14,7 +14,9 @@ defmodule InfolabLightGamesWeb.PageLive do
 
     socket =
       socket
-      |> assign(game_id: nil, width: width, height: height)
+      |> assign(queued_activity_id: nil, joined_games: %{})
+      #|> assign(game_id: nil)
+      |> assign(width: width, height: height)
       |> assign(coordinator_status: coordinator_status)
       |> assign(remote_ip: remote_ip)
       |> assign(banned: Bans.is_banned?(remote_ip))
@@ -30,14 +32,15 @@ defmodule InfolabLightGamesWeb.PageLive do
   end
 
   @impl true
-  def handle_info({:banned, ip}, socket) do
-    if socket.assigns.remote_ip == ip and socket.assigns.game_id do
-      socket
+  def handle_info({:banned, banned_ip}, %{assigns: %{joined_games: joined_games, remote_ip: remote_ip}} = socket) do
+    socket = if banned_ip == remote_ip do
+      Enum.reduce(joined_games, socket, &leave_game(&2, &1))
       |> assign(banned: true)
-      |> leave_game(ip, socket.assigns.remote_ip)
+      |> assign(joined_games: [])
     else
-      {:noreply, socket}
+      socket
     end
+    {:noreply, socket}
   end
 
   @impl true
@@ -51,88 +54,59 @@ defmodule InfolabLightGamesWeb.PageLive do
   end
 
   @impl true
-  def handle_info(
-        {:activity_terminated, id},
-        %{assigns: %{game_id: id, remote_ip: remote_ip}} = socket
-      ) do
-    {:ok, _} = Presence.update_user_status(self(), remote_ip, "idle")
-    {:noreply, assign(socket, game_id: nil)}
-  end
+  def handle_info({:activity_terminated, id}, %{assigns: %{joined_games: joined_games, queued_activity_id: queued_id, remote_ip: remote_ip}} = socket) do
+    # Clear queued activity if it's terminated
+    socket = if queued_id == id do
+      {:ok, _} = Presence.update_user_status(self(), remote_ip, "idle")
+      assign(socket, queued_activity_id: nil)
+    else
+      socket
+    end
+    socket = if !is_nil(joined_games[id]) do
+      assign(socket, joined_games: %{joined_games | id => nil})
+    else
+      socket
+    end
 
-  @impl true
-  def handle_info({:activity_terminated, _id}, socket) do
     {:noreply, socket}
   end
 
-  @impl true
-  def handle_event("queue", _params, %{assigns: %{banned: true}} = socket) do
-    {:noreply, put_flash(socket, :error, "You're banned mate")}
+  def handle_event("queue-activity", _params, %{assigns: %{banned: true}} = socket) do
+    {:noreply, put_flash(socket, :error, "Error: User banned")}
   end
 
-  @impl true
-  def handle_event(
-        "queue",
-        %{"game-name" => game_name},
-        %{assigns: %{game_id: nil, remote_ip: remote_ip}} = socket
-      ) do
-    {:ok, game} =
-      case game_name do
-        "pong" -> {:ok, Games.Pong}
-        "snake" -> {:ok, Games.Snake}
-        _ -> {:error, :unknown_game}
-      end
+  def handle_event("queue-activity", %{"activity-name" => activity_name}, %{assigns: %{queued_activity_id: nil}} = socket) do
+    Logger.info("Queueing #{activity_name}")
+    {module, mode} = case activity_name do
+      "pong-ex-game" -> {Games.Pong, nil}
+      "snake-ex-game" -> {Games.Snake, nil}
+      _ -> Coordinator.idle_animation_for_name(activity_name)
+    end
 
-    {:ok, id} = Coordinator.queue_activity(game, nil, self())
-
-    {:ok, _} = Presence.update_user_status(self(), remote_ip, "in game #{id}")
+    {:ok, id} = Coordinator.queue_activity(module, mode, self())
 
     socket =
       socket
-      |> assign(game_id: id)
-      |> put_flash(:info, "Joined game: #{id}")
+      |> assign(queued_activity_id: id)
+      |> put_flash(:info, "Queued #{activity_name}")
 
     {:noreply, socket}
   end
 
-  @impl true
-  def handle_event("queue", _params, socket) do
-    # already in a game
-    {:noreply, put_flash(socket, :error, "You're already in a game")}
-  end
-
-  @impl true
-  def handle_event("queue-animation", _params, %{assigns: %{banned: true}} = socket) do
-    {:noreply, put_flash(socket, :error, "You're banned mate")}
-  end
-
-  @impl true
-  def handle_event(
-        "queue-animation",
-        %{"animation-name" => animation_name},
-        socket
-      ) do
-    Logger.info("Queueing #{animation_name}")
-
-    {module, {mode, name}} = Coordinator.idle_animation_for_name(animation_name)
-    {:ok, _id} = Coordinator.queue_activity(module, {mode, name}, self())
-
-    socket =
-      socket
-      |> put_flash(:info, "Queued #{name}")
-
-    {:noreply, socket}
+  def handle_event("queue-activity", _params, socket) do
+    {:noreply, put_flash(socket, :error, "You've already queued an activity")}
   end
 
   @impl true
   def handle_event("join", _params, %{assigns: %{banned: true}} = socket) do
-    {:noreply, put_flash(socket, :error, "You're banned mate")}
+    {:noreply, put_flash(socket, :error, "Error: User banned")}
   end
 
   @impl true
   def handle_event(
         "join",
         %{"game-id" => id},
-        %{assigns: %{game_id: nil, remote_ip: remote_ip}} = socket
+        %{assigns: %{joined_games: joined_games, remote_ip: remote_ip}} = socket
       ) do
     Coordinator.join_game(id, self())
 
@@ -140,29 +114,23 @@ defmodule InfolabLightGamesWeb.PageLive do
 
     socket =
       socket
-      |> assign(game_id: id)
+      |> assign(joined_games: %{joined_games | id => true})
       |> put_flash(:info, "Joined game: #{id}")
 
     {:noreply, socket}
   end
 
   @impl true
-  def handle_event("join", _params, socket) do
-    # already in a game
-    {:noreply, put_flash(socket, :error, "You're already in a game")}
-  end
-
-  @impl true
   def handle_event(
         "leave",
         %{"game-id" => id},
-        %{assigns: %{game_id: id, remote_ip: remote_ip}} = socket
+        %{assigns: %{joined_games: joined_games}} = socket
       ) do
-    leave_game(socket, id, remote_ip)
-  end
-
-  @impl true
-  def handle_event("leave", _params, socket) do
+    socket = if joined_games[id] do
+      leave_game(socket, id)
+    else
+      socket
+    end
     {:noreply, socket}
   end
 
@@ -181,25 +149,23 @@ defmodule InfolabLightGamesWeb.PageLive do
   end
 
   @impl true
-  def terminate(_reason, socket) do
-    Logger.warning("terminating user")
+  def terminate(_reason, %{assigns: %{joined_games: joined_games}} = socket) do
+    Logger.warning("Terminating user")
     :ok = Presence.untrack_user(self(), socket.assigns.remote_ip)
 
-    unless is_nil(socket.assigns.game_id) do
-      Coordinator.leave_game(socket.assigns.game_id, self())
-    end
+    Enum.map(Map.keys(joined_games), &Coordinator.leave_game(&1, self()))
   end
 
-  defp leave_game(socket, id, remote_ip) do
+  defp leave_game(socket, id) do
     Coordinator.leave_game(id, self())
 
-    {:ok, _} = Presence.update_user_status(self(), remote_ip, "idle")
+    {:ok, _} = Presence.update_user_status(self(), socket.assigns.remote_ip, "idle")
 
     socket =
       socket
-      |> assign(game_id: nil)
+      |> assign(joined_games: %{socket.assigns.joined_games | id => nil})
       |> put_flash(:info, "Left game: #{id}")
 
-    {:noreply, socket}
+    socket
   end
 end
