@@ -37,3 +37,7 @@ priv/native/
 native/matrix/target/
 
 .direnv/
+
+# Intelij project
+.idea/
+infolab_light_games.iml

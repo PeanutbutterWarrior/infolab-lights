@@ -148,6 +148,8 @@ defmodule Coordinator do
       :ok = GenServer.call(via_tuple(id), {:add_player, player})
     catch
       :exit, e -> Logger.warning("Couldn't join_game: #{inspect(e)}")
+    else
+      _ -> Phoenix.PubSub.broadcast!(InfolabLightGames.PubSub, "player:status", {:player_join_game, id, player})
     end
 
     {:reply, id, state, {:continue, :check_current_activity}}
@@ -159,6 +161,8 @@ defmodule Coordinator do
       :ok = GenServer.call(via_tuple(id), {:remove_player, player})
     catch
       :exit, e -> Logger.warning("Couldn't leave_game: #{inspect(e)}")
+    else
+      _ -> Phoenix.PubSub.broadcast!(InfolabLightGames.PubSub, "player:status", {:player_leave_game, id, player})
     end
 
     {:reply, id, state, {:continue, :check_current_activity}}
