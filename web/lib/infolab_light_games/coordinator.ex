@@ -253,8 +253,7 @@ defmodule Coordinator do
   end
 
   defp get_random_activity() do
-    # Chosen by random dice roll
-    {IdleAnimations.Ant, {:original, "Langtons ant"}}
+    modes_for_modules([IdleAnimations.Ant, IdleAnimations.GOL, IdleAnimations.JSImpl]) |> Enum.random
   end
 
   def terminate_activity(id) do
