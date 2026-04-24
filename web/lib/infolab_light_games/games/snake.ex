@@ -140,18 +140,9 @@ defmodule Games.Snake do
   end
 
   @impl true
-  def handle_call(:start_if_ready, _from, %State{} = state) do
-    cond do
-      state.running ->
-        {:reply, :running, state}
-
-      is_nil(state.player) ->
-        {:reply, :not_ready, state}
-
-      true ->
-        {:ok, _timer} = :timer.send_interval(@tick_ms, :tick)
-        {:reply, :started, %State{state | running: true}}
-    end
+  def handle_cast(:start, %State{} = state) do
+    {:ok, _timer} = :timer.send_interval(@tick_ms, :tick)
+    {:noreply, %State{state | running: true}}
   end
 
   @impl true
