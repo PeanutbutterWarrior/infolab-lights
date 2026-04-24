@@ -157,4 +157,8 @@ return class MyEffect {
   onKeypress(dir, player) {
     this.snakes[player - 1].handleInput(dir)
   }
+
+  maxPlayers() {
+    return 10
+  }
 }

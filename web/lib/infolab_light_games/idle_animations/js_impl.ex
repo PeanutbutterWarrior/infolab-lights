@@ -34,6 +34,7 @@ defmodule IdleAnimations.JSImpl do
 
       field(:players, %{pid() => non_neg_integer()}, default: %{})
       field(:num_players, non_neg_integer(), default: 0)
+      field(:max_players, non_neg_integer(), default: 0)
     end
   end
 
@@ -71,13 +72,12 @@ defmodule IdleAnimations.JSImpl do
 
   @impl true
   def handle_call(:get_status, _from, state) do
-    max_players = if state.name == "snake" do 1 else 0 end
     {:reply,
      %GameStatus{
        id: state.id,
        name: state.name,
        players: state.num_players,
-       max_players: max_players,
+       max_players: state.max_players,
        ready: true
      }, state}
   end
@@ -172,6 +172,9 @@ defmodule IdleAnimations.JSImpl do
       |> Stream.run()
     end)
 
+    cmd = Jason.encode!(%{msg: :getMaxPlayers})
+    Exile.Process.write(s, "#{cmd}\n")
+
     state = %State{state | process: s, tmp_file: path}
 
     {:noreply, state}
@@ -223,9 +226,8 @@ defmodule IdleAnimations.JSImpl do
 
   defp process_input(msg, %State{} = state) do
     {screen_x, screen_y} = Screen.dims()
-
     case Msgpax.unpack_slice(msg) do
-      {:ok, parsed, rest} ->
+      {:ok, %{"type" => "pix", "data" => parsed}, rest} ->
         pixels =
           parsed
           |> Enum.map(fn %{"x" => x, "y" => y, "v" => [r, g, b]} ->
@@ -243,7 +245,11 @@ defmodule IdleAnimations.JSImpl do
         }
 
         process_input(rest, state)
-
+      {:ok, %{"type" => "maxPlayers", "data" => maxPlayers}, rest} ->
+        state = %State{
+          state | max_players: maxPlayers
+        }
+        process_input(rest, state)
       {:error, _e} ->
         %State{state | working_input: msg}
     end

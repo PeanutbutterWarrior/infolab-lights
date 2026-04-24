@@ -51,17 +51,14 @@ class Display {
             }));
         });
 
-        const chunkSize = 1000;
-        const len = pixels.length;
-        for (let i = 0; i < len; i += chunkSize) {
-            writeAllSync(Deno.stdout, pack(pixels.slice(i, i + chunkSize)));
-        }
+        writeAllSync(Deno.stdout, pack({type: "pix", data: pixels}));
     }
 }
 
 function callIfPossible(obj, method, args = []) {
     if (method != null)
-        method.apply(obj, args);
+        return method.apply(obj, args);
+    return null;
 }
 
 const effect = (() => {
@@ -90,6 +87,12 @@ while (true) {
             break;
         case "removePlayer":
             callIfPossible(inst, inst.removePlayer, [command.player]);
+            break;
+        case "getMaxPlayers":
+            let max_players = callIfPossible(inst, inst.maxPlayers)
+            if (max_players != null) {
+                writeAllSync(Deno.stdout, pack({type: "maxPlayers", data: max_players}));
+            }
             break;
     }
 }
